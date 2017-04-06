@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.WindowsAzure.MobileServices;
+using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Xamarin.Forms;
 using XamarinAllianceApp.Controllers;
@@ -9,6 +11,7 @@ namespace XamarinAllianceApp.Views
     public partial class CharacterListPage : ContentPage
     {
         private CharacterService service;
+        bool authenticated = false;
 
         public CharacterListPage()
         {
@@ -17,12 +20,26 @@ namespace XamarinAllianceApp.Views
             service = new CharacterService();
         }
 
+        async void OnButtonClicked(object sender, EventArgs args)
+        {
+            var method = await DisplayActionSheet("Sign-in method", "Cancel", null,"Facebook", "Twitter");
+            if (method != "Cancel")
+            {
+                if (App.Authenticator != null)
+                    authenticated = await App.Authenticator.Authenticate(method);
+
+                // Set syncItems to true to synchronize the data on startup when offline is enabled.
+                if (authenticated == true)
+                    await RefreshItems(true, syncItems: false);
+            }
+        }
+
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
             // Set syncItems to true in order to synchronize the data on startup when running in offline mode
-            await RefreshItems(true);
+            //await RefreshItems(true);
         }
 
         // http://developer.xamarin.com/guides/cross-platform/xamarin-forms/working-with/listview/#pulltorefresh
@@ -30,22 +47,30 @@ namespace XamarinAllianceApp.Views
         {
             var list = (ListView)sender;
             Exception error = null;
-            try
+            if (authenticated)
             {
-                await RefreshItems(false);
+                try
+                {
+                    await RefreshItems(false);
+                }
+                catch (Exception ex)
+                {
+                    error = ex;
+                }
+                finally
+                {
+                    list.EndRefresh();
+                }
+
+                if (error != null)
+                {
+                    await DisplayAlert("Refresh Error", "Couldn't refresh data (" + error.Message + ")", "OK");
+                }
             }
-            catch (Exception ex)
-            {
-                error = ex;
-            }
-            finally
+            else
             {
                 list.EndRefresh();
-            }
-
-            if (error != null)
-            {
-                await DisplayAlert("Refresh Error", "Couldn't refresh data (" + error.Message + ")", "OK");
+                await DisplayAlert("Sign-in", "Please sign-in first", "OK");
             }
         }
 
@@ -64,11 +89,18 @@ namespace XamarinAllianceApp.Views
             Navigation.PushAsync(new CharacterDetailPage(item));
         }
 
-        private async Task RefreshItems(bool showActivityIndicator)
+        private async Task RefreshItems(bool showActivityIndicator, bool syncItems = false)
         {
             using (var scope = new ActivityIndicatorScope(syncIndicator, showActivityIndicator))
             {
-                characterList.ItemsSource = await service.GetCharactersAsync();
+                try
+                {
+                    characterList.ItemsSource = await service.GetCharactersAsync();
+                }
+                catch(Exception e)
+                {
+                    
+                }
             }
         }
 

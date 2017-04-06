@@ -9,9 +9,17 @@ namespace XamarinAllianceApp
 {
 	public class App : Application
 	{
-		public App ()
+        public static IAuthenticate Authenticator { get; private set; }
+
+        public static void Init(IAuthenticate authenticator)
+        {
+            Authenticator = authenticator;
+        }
+
+        public App ()
 		{
             // The root page of your application
+            //MainPage = new NavigationPage(new LoginPage());
             MainPage = new NavigationPage(new CharacterListPage());
         }
 
