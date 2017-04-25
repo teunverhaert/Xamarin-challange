@@ -20,8 +20,6 @@ namespace XamarinAllianceApp.Views
             InitializeComponent();
             this.Title = character.Name;
             characterImage.Source = ImageSource.FromUri(new Uri(character.ImageUrl));
-            //var characterImg = new Image { Aspect = Aspect.AspectFit };
-            //characterImg.Source = ImageSource.FromUri(new Uri(this.character.ImageUrl));
             nameLabel.Text = character.Name;
             descriptionLabel.Text = character.Biography;
             genderLabel.Text = "Gender: " + character.Gender;

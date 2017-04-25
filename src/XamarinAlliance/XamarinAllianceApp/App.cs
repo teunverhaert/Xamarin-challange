@@ -19,7 +19,7 @@ namespace XamarinAllianceApp
         public App ()
 		{
             // The root page of your application
-            //MainPage = new NavigationPage(new LoginPage());
+            //MainPage = new NavigationPage(new ImagePage());
             MainPage = new NavigationPage(new CharacterListPage());
         }
 

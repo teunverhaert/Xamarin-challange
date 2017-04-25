@@ -1,6 +1,11 @@
 ﻿using Microsoft.WindowsAzure.MobileServices;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
+using Microsoft.WindowsAzure.Storage.Blob;
 using System;
+using System.Threading;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Xamarin.Forms;
 using XamarinAllianceApp.Controllers;
@@ -16,8 +21,33 @@ namespace XamarinAllianceApp.Views
         public CharacterListPage()
         {
             InitializeComponent();
+        }
 
-            service = new CharacterService();
+        async void getToken()
+        {
+            var client = new MobileServiceClient("http://xamarinalliancebackend.azurewebsites.net");
+            var tok = await client.InvokeApiAsync("/api/StorageToken/CreateToken");
+            String token = tok.ToObject<String>();
+            connectToCloud(token);
+        }
+
+        void connectToCloud(String token)
+        {
+            string storageAccountName = "xamarinalliance";
+            StorageCredentials credentials = new StorageCredentials(token);
+            CloudStorageAccount account = new CloudStorageAccount(credentials, storageAccountName, null, true);
+            CloudBlobClient client = account.CreateCloudBlobClient();
+            downloadImage(client);
+        }
+
+        async void downloadImage(CloudBlobClient client)
+        {
+            CloudBlobContainer container;
+            container = client.GetContainerReference("images");
+            CloudBlob blob = container.GetBlobReference("XAMARIN-Alliance-logo.png");
+            byte[] target = new byte[1024 * 1024 * 3];
+            int bytesRead = await blob.DownloadToByteArrayAsync(target, 0);
+            xamarinImage.Source = ImageSource.FromStream(() => new MemoryStream(target));
         }
 
         async void OnButtonClicked(object sender, EventArgs args)
@@ -37,12 +67,9 @@ namespace XamarinAllianceApp.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
-            // Set syncItems to true in order to synchronize the data on startup when running in offline mode
-            //await RefreshItems(true);
+            getToken();
         }
 
-        // http://developer.xamarin.com/guides/cross-platform/xamarin-forms/working-with/listview/#pulltorefresh
         public async void OnRefresh(object sender, EventArgs e)
         {
             var list = (ListView)sender;
